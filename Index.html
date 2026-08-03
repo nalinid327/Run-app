@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Road to the 5K</title>
+<meta name="description" content="An 8-week 5K training tracker" />
+<link rel="icon" href="data:,">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  ::-webkit-scrollbar { display: none; }
+  body { background: #0E0F22; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+/* ---------------------------------------------------------------
+   ICONS (lightweight inline SVG replacements for lucide-react)
+----------------------------------------------------------------*/
+function Icon({ children, size = 16, color = "currentColor", style }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      {children}
+    </svg>
+  );
+}
+const Play = (p) => <Icon {...p}><polygon points="5 3 19 12 5 21 5 3" fill={p.fill || "none"} /></Icon>;
+const Check = (p) => <Icon {...p}><polyline points="20 6 9 17 4 12" /></Icon>;
+const Plus = (p) => <Icon {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></Icon>;
+const ChevronDown = (p) => <Icon {...p}><polyline points="6 9 12 15 18 9" /></Icon>;
+const ChevronUp = (p) => <Icon {...p}><polyline points="18 15 12 9 6 15" /></Icon>;
+const Flag = (p) => <Icon {...p}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></Icon>;
+const Watch = (p) => <Icon {...p}><circle cx="12" cy="12" r="7" /><polyline points="12 9 12 12 13.5 13.5" /><path d="M16.51 17.35l.35 3.83a2 2 0 0 1-2 2.18h-5.72a2 2 0 0 1-2-2.18l.35-3.83m9.02-10.7l.35-3.83a2 2 0 0 0-2-2.18h-5.72a2 2 0 0 0-2 2.18l.35 3.83" /></Icon>;
+const Heart = (p) => <Icon {...p}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.6z" /></Icon>;
+const TrendingUp = (p) => <Icon {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></Icon>;
+const SettingsIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></Icon>;
+const X = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Icon>;
+const Trophy = (p) => <Icon {...p}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M17 5h3a2 2 0 0 1-2 4M7 5H4a2 2 0 0 0 2 4" /></Icon>;
+const Clock = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></Icon>;
+const HomeIcon = (p) => <Icon {...p}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></Icon>;
+const CalendarDays = (p) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></Icon>;
+const Gauge = (p) => <Icon {...p}><path d="M12 15l3.5-3.5" /><circle cx="12" cy="12" r="9" /><line x1="12" y1="3" x2="12" y2="5" /></Icon>;
+const Zap = (p) => <Icon {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill={p.color || "none"} /></Icon>;
+const Wind = (p) => <Icon {...p}><path d="M9.6 4.6A2 2 0 1 1 11 8H2M12.6 19.4A2 2 0 1 0 14 16H2M17.6 7.6A2.5 2.5 0 1 1 19.5 12H2" /></Icon>;
+const Flame = (p) => <Icon {...p}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17a2.5 2.5 0 0 0 2.5-2.5c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7.5 7.5 0 1 1-15 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></Icon>;
+const MapPin = (p) => <Icon {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></Icon>;
+
+/* ---------------------------------------------------------------
+   PALETTE
+----------------------------------------------------------------*/
+const C = {
+  bg: "#0E0F22", bgPanel: "#191B38", bgPanelLight: "#232650",
+  line: "#33366B", chalk: "#F5F3EE", chalkDim: "#9A9CC4",
+  amber: "#FFC94A", coral: "#FF6B6B", mint: "#34D399", sky: "#7FA7FF",
+};
+const WORKOUT_STYLE = {
+  interval: { gradient: "linear-gradient(135deg, #FF6B6B 0%, #FFA36C 100%)", solid: "#FF6B6B", icon: Zap, chip: "INTERVALS" },
+  continuous: { gradient: "linear-gradient(135deg, #34D399 0%, #14B8A6 100%)", solid: "#34D399", icon: Wind, chip: "STEADY RUN" },
+  race: { gradient: "linear-gradient(135deg, #FFD166 0%, #FF7A59 100%)", solid: "#FFD166", icon: Flag, chip: "RACE DAY" },
+};
+const DISPLAY = "'Bebas Neue', 'Archivo Narrow', sans-serif";
+const BODY = "'Inter', system-ui, sans-serif";
+const MONO = "'JetBrains Mono', ui-monospace, monospace";
+
+/* ---------------------------------------------------------------
+   DATE HELPERS — program starts the first Monday on/after page load
+----------------------------------------------------------------*/
+function nextMonday(d) {
+  const r = new Date(d); const day = r.getDay();
+  const add = day === 1 ? 0 : (8 - day) % 7;
+  r.setDate(r.getDate() + add); r.setHours(0,0,0,0); return r;
+}
+const PROGRAM_START = nextMonday(new Date());
+const RACE_DATE = (() => { const r = new Date(PROGRAM_START); r.setDate(r.getDate() + 55); return r; })();
+
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function fmtShort(d) { return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }); }
+function fmtISO(d) { return d.toISOString().slice(0, 10); }
+function daysBetween(a, b) { return Math.round((new Date(b).setHours(0,0,0,0) - new Date(a).setHours(0,0,0,0)) / 86400000); }
+
+/* ---------------------------------------------------------------
+   TRAINING PLAN
+----------------------------------------------------------------*/
+const RAW_WEEKS = [
+  { theme: "Find the rhythm", sessions: [
+    { title: "Run/Walk Intro", desc: "Run 1 min, walk 1.5 min — repeat 8x", target: 20, type: "interval" },
+    { title: "Run/Walk Intro", desc: "Run 1 min, walk 1.5 min — repeat 8x", target: 20, type: "interval" },
+    { title: "Run/Walk Intro+", desc: "Run 1 min, walk 1.5 min — repeat 9x", target: 22, type: "interval" },
+  ]},
+  { theme: "Stretch the intervals", sessions: [
+    { title: "Building Blocks", desc: "Run 1.5 min, walk 1.5 min — repeat 7x", target: 21, type: "interval" },
+    { title: "Building Blocks", desc: "Run 1.5 min, walk 1.5 min — repeat 7x", target: 21, type: "interval" },
+    { title: "Building Blocks+", desc: "Run 1.5 min, walk 1 min — repeat 8x", target: 20, type: "interval" },
+  ]},
+  { theme: "More running than walking", sessions: [
+    { title: "Tipping Point", desc: "Run 2 min, walk 1 min — repeat 7x", target: 21, type: "interval" },
+    { title: "Tipping Point", desc: "Run 2 min, walk 1 min — repeat 7x", target: 21, type: "interval" },
+    { title: "Tipping Point+", desc: "Run 3 min, walk 1 min — repeat 5x, finish with a 3-min run", target: 24, type: "interval" },
+  ]},
+  { theme: "Longer stretches", sessions: [
+    { title: "Long Stretch", desc: "Run 3 min, walk 90 sec — repeat 5x", target: 22, type: "interval" },
+    { title: "Long Stretch", desc: "Run 5 min, walk 2 min — repeat 3x", target: 21, type: "interval" },
+    { title: "Long Stretch+", desc: "Run 5 min, walk 90 sec — repeat 3x", target: 20, type: "interval" },
+  ]},
+  { theme: "Running is the default now", sessions: [
+    { title: "Momentum", desc: "Run 5 min, walk 1 min — repeat 4x", target: 24, type: "interval" },
+    { title: "Momentum", desc: "Run 8 min, walk 1 min — repeat 3x", target: 27, type: "interval" },
+    { title: "Momentum+", desc: "Run 8 min, walk 90 sec — repeat 2x, then run 5 min", target: 24, type: "interval" },
+  ]},
+  { theme: "Closing the gaps", sessions: [
+    { title: "Closing In", desc: "Run 10 min, walk 1 min — repeat 2x, then run 5 min", target: 26, type: "interval" },
+    { title: "Closing In", desc: "Run 12 min, walk 1 min, then run 10 min", target: 23, type: "interval" },
+    { title: "Closing In+", desc: "Run 14 min, walk 1 min, then run 8 min", target: 23, type: "interval" },
+  ]},
+  { theme: "Continuous running", sessions: [
+    { title: "One Long Push", desc: "Run 20 minutes continuously — no walk breaks", target: 20, type: "continuous" },
+    { title: "Steady State", desc: "Run 25 minutes continuously at an easy, talkable pace", target: 25, type: "continuous" },
+    { title: "Steady State", desc: "Run 20 minutes continuously, relaxed and easy", target: 20, type: "continuous" },
+  ]},
+  { theme: "Taper & race", sessions: [
+    { title: "Easy Shakeout", desc: "Run 15 minutes easy — this is about staying loose, not effort", target: 15, type: "continuous" },
+    { title: "Pre-Race Shakeout", desc: "Run 10 minutes easy with a few relaxed strides", target: 10, type: "continuous" },
+    { title: "RACE DAY — 5K", desc: "This is it. Run your 5K. Trust the last 8 weeks.", target: 30, type: "race" },
+  ]},
+];
+
+function buildWeeks() {
+  return RAW_WEEKS.map((w, wi) => {
+    const weekStart = addDays(PROGRAM_START, wi * 7);
+    const offsets = wi === 7 ? [1, 3, 6] : [1, 3, 5];
+    const sessions = w.sessions.map((s, si) => {
+      const date = addDays(weekStart, offsets[si]);
+      return { id: `w${wi + 1}s${si + 1}`, weekNum: wi + 1, label: `Run ${si + 1}`, date, isRace: s.type === "race", ...s };
+    });
+    return { weekNum: wi + 1, theme: w.theme, startDate: weekStart, endDate: addDays(weekStart, 6), sessions };
+  });
+}
+const WEEKS = buildWeeks();
+const ALL_SESSIONS = WEEKS.flatMap((w) => w.sessions);
+const PROGRAM_DAYS = daysBetween(PROGRAM_START, RACE_DATE);
+
+/* ---------------------------------------------------------------
+   CALC / LOGIC HELPERS
+----------------------------------------------------------------*/
+function paceMinPerKm(distanceKm, durationMin) { if (!distanceKm || !durationMin) return null; return durationMin / distanceKm; }
+function speedKmH(distanceKm, durationMin) { if (!distanceKm || !durationMin) return null; return distanceKm / (durationMin / 60); }
+function fmtPace(p) { if (p == null || !isFinite(p)) return "—"; const m = Math.floor(p); const s = Math.round((p - m) * 60); return `${m}:${s.toString().padStart(2, "0")} /km`; }
+function hrZone(avgHR, maxHR) {
+  if (!avgHR || !maxHR) return null;
+  const pct = avgHR / maxHR;
+  if (pct < 0.6) return { label: "Very Light", color: C.sky };
+  if (pct < 0.7) return { label: "Easy", color: C.mint };
+  if (pct < 0.8) return { label: "Moderate", color: C.amber };
+  if (pct < 0.9) return { label: "Hard", color: C.coral };
+  return { label: "Max Effort", color: C.coral };
+}
+
+function getAdjustment(session, logs) {
+  if (session.isRace) return null;
+  const idx = ALL_SESSIONS.findIndex((s) => s.id === session.id);
+  const priorSessions = ALL_SESSIONS.slice(Math.max(0, idx - 3), idx).filter((s) => logs[s.id]);
+  if (priorSessions.length < 2) return null;
+  const priorLogs = priorSessions.map((s) => logs[s.id]);
+  const avgRpe = priorLogs.reduce((a, l) => a + l.rpe, 0) / priorLogs.length;
+  const completionRate = priorLogs.filter((l) => l.completed).length / priorLogs.length;
+  if (avgRpe <= 4 && completionRate === 1) {
+    return { multiplier: 1.15, tone: "good", label: "Ahead of schedule", note: "Your last few runs felt easy — this one's been bumped up a bit." };
+  }
+  if (avgRpe >= 8 || completionRate < 0.5) {
+    return { multiplier: 0.85, tone: "watch", label: "Dialed back", note: "Recent runs felt tough, so this one's trimmed back. Repeat this week if that continues." };
+  }
+  return null;
+}
+
+function generateFeedback({ log, session, priorBest }) {
+  const pace = paceMinPerKm(log.distanceKm, log.durationMin);
+  const msgs = [];
+  let tone = "good";
+  if (session?.isRace) {
+    msgs.push("You ran the 5K. Full stop — that's the whole goal, done.");
+    if (pace) msgs.push(`Finish pace: ${fmtPace(pace)}. Whatever the number, you covered the distance.`);
+    return { tone: "good", lines: msgs };
+  }
+  if (log.rpe >= 8) { tone = "watch"; msgs.push("That one felt tough. Nothing wrong with repeating this session before pushing on."); }
+  else if (log.rpe <= 4) { msgs.push("That felt comfortable — a good sign your fitness is building."); }
+  else { msgs.push("Solid, moderate effort. Right where a training run should feel."); }
+  if (session && log.durationMin < session.target * 0.85 && log.durationMin > 0) {
+    tone = tone === "good" ? "neutral" : tone;
+    msgs.push("You came in under the planned time — no pressure to hit it exactly, just noting it.");
+  }
+  if (pace && priorBest && pace < priorBest - 0.05) msgs.push("🎉 That's your fastest pace logged so far.");
+  return { tone, lines: msgs };
+}
+
+function computeStats(logs) {
+  const doneSessions = ALL_SESSIONS.filter((s) => logs[s.id]);
+  const totalDistance = doneSessions.reduce((a, s) => a + (logs[s.id].distanceKm || 0), 0);
+  const totalMinutes = doneSessions.reduce((a, s) => a + (logs[s.id].durationMin || 0), 0);
+  const paces = doneSessions.map((s) => paceMinPerKm(logs[s.id].distanceKm, logs[s.id].durationMin)).filter((p) => p && isFinite(p));
+  const bestPace = paces.length ? Math.min(...paces) : null;
+  let streak = 0;
+  for (const w of WEEKS) { if (w.sessions.every((s) => logs[s.id])) streak++; else break; }
+  return { totalDistance, totalMinutes, bestPace, streak, runsLogged: doneSessions.length };
+}
+
+/* ---------------------------------------------------------------
+   STORAGE HOOK — uses localStorage (this file runs on your own domain)
+----------------------------------------------------------------*/
+const LS_LOGS_KEY = "road-to-5k:run-logs";
+const LS_SETTINGS_KEY = "road-to-5k:settings";
+
+function useAppData() {
+  const [logs, setLogs] = useState({});
+  const [settings, setSettings] = useState({ age: "" });
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    try { const l = localStorage.getItem(LS_LOGS_KEY); if (l) setLogs(JSON.parse(l)); } catch (e) {}
+    try { const s = localStorage.getItem(LS_SETTINGS_KEY); if (s) setSettings(JSON.parse(s)); } catch (e) {}
+    setLoaded(true);
+  }, []);
+
+  const saveLog = useCallback(async (sessionId, entry) => {
+    setLogs((prev) => {
+      const next = { ...prev, [sessionId]: entry };
+      try { localStorage.setItem(LS_LOGS_KEY, JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  const saveSettings = useCallback(async (next) => {
+    setSettings(next);
+    try { localStorage.setItem(LS_SETTINGS_KEY, JSON.stringify(next)); } catch (e) {}
+  }, []);
+
+  return { logs, saveLog, settings, saveSettings, loaded };
+}
+
+/* ---------------------------------------------------------------
+   SHARED UI
+----------------------------------------------------------------*/
+function ProgressRing({ progress, size = 92, stroke = 8, color, trackColor = C.line, children }) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(1, progress || 0));
+  const offset = c * (1 - clamped);
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={trackColor} strokeWidth={stroke} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none"
+          strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.4s ease" }} />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, color }) {
+  return (
+    <div>
+      <div style={{ fontFamily: MONO, fontSize: 15, color: color || C.chalk }}>{value}</div>
+      <div style={{ fontFamily: BODY, fontSize: 10, color: C.chalkDim, letterSpacing: 0.5 }}>{label.toUpperCase()}</div>
+    </div>
+  );
+}
+
+function Badge({ icon: IconComp, label, value, color }) {
+  return (
+    <div className="flex items-center gap-2 rounded-full pl-2 pr-3 py-1.5 flex-shrink-0" style={{ background: C.bgPanel, border: `1px solid ${C.line}` }}>
+      <div className="flex items-center justify-center rounded-full" style={{ width: 22, height: 22, background: color }}>
+        <IconComp size={12} color={C.bg} />
+      </div>
+      <div>
+        <div style={{ fontFamily: MONO, fontSize: 12, color: C.chalk, lineHeight: 1.1 }}>{value}</div>
+        <div style={{ fontFamily: BODY, fontSize: 8.5, color: C.chalkDim, letterSpacing: 0.4 }}>{label.toUpperCase()}</div>
+      </div>
+    </div>
+  );
+}
+
+function TheLane({ weeks, currentWeek, selected, onSelect, completion }) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
+      {weeks.map((w) => {
+        const isCurrent = w.weekNum === currentWeek;
+        const isSel = w.weekNum === selected;
+        const pct = completion(w.weekNum);
+        return (
+          <button key={w.weekNum} onClick={() => onSelect(w.weekNum)}
+            className="flex-shrink-0 flex flex-col items-center justify-center transition-transform active:scale-95"
+            style={{ width: 56, height: 64, borderRadius: 10, background: isSel ? C.amber : C.bgPanel, border: `1px solid ${isCurrent ? C.amber : C.line}`, position: "relative" }}>
+            <span style={{ fontFamily: DISPLAY, fontSize: 21, lineHeight: 1, color: isSel ? C.bg : C.chalk }}>{String(w.weekNum).padStart(2, "0")}</span>
+            <span style={{ fontFamily: BODY, fontSize: 9, letterSpacing: 0.5, marginTop: 2, color: isSel ? C.bg : C.chalkDim }}>WEEK</span>
+            <div style={{ position: "absolute", bottom: 4, left: 8, right: 8, height: 3, background: isSel ? "rgba(14,15,34,0.25)" : C.line, borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ width: `${pct * 100}%`, height: "100%", background: isSel ? C.bg : C.mint }} />
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function DayStrip({ week, logs }) {
+  const days = Array.from({ length: 7 }, (_, i) => addDays(week.startDate, i));
+  const todayISO = fmtISO(new Date());
+  return (
+    <div className="flex justify-between mt-4 mb-1">
+      {days.map((d, i) => {
+        const session = week.sessions.find((s) => fmtISO(s.date) === fmtISO(d));
+        const isToday = fmtISO(d) === todayISO;
+        const style = session ? WORKOUT_STYLE[session.type] : null;
+        const done = session && logs[session.id];
+        const IconComp = style?.icon;
+        return (
+          <div key={i} className="flex flex-col items-center gap-1.5">
+            <span style={{ fontFamily: BODY, fontSize: 10, color: C.chalkDim }}>{d.toLocaleDateString(undefined, { weekday: "narrow" })}</span>
+            <div style={{
+              width: 32, height: 32, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center",
+              background: session ? (done ? C.mint : style.solid) : C.bgPanelLight,
+              boxShadow: isToday ? `0 0 0 2px ${C.chalk}` : "none",
+            }}>
+              {session ? (done ? <Check size={14} color={C.bg} /> : <IconComp size={14} color={C.bg} />) : null}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SessionCard({ session, log, onLog, isNext, adjustment }) {
+  const style = WORKOUT_STYLE[session.type];
+  const IconComp = style.icon;
+  const done = !!log;
+  const pace = log ? paceMinPerKm(log.distanceKm, log.durationMin) : null;
+  const adjustedTarget = adjustment ? Math.round(session.target * adjustment.multiplier) : session.target;
+
+  return (
+    <div className="rounded-2xl p-4 mb-3 relative overflow-hidden"
+      style={{ background: done ? C.bgPanel : style.gradient, border: done ? `1px solid ${C.line}` : isNext ? "2px solid rgba(255,255,255,0.5)" : "none" }}>
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center rounded-full flex-shrink-0"
+            style={{ width: 34, height: 34, background: done ? style.solid : "rgba(0,0,0,0.22)" }}>
+            <IconComp size={16} color={done ? C.bg : C.chalk} />
+          </div>
+          <div>
+            <div style={{ fontFamily: BODY, fontSize: 10.5, letterSpacing: 1, color: done ? C.chalkDim : "rgba(255,255,255,0.85)" }}>
+              {style.chip} · {session.label.toUpperCase()} · {fmtShort(session.date)}
+            </div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 23, color: C.chalk, letterSpacing: 0.5, lineHeight: 1.05 }}>{session.title}</div>
+          </div>
+        </div>
+        {done && (
+          <div className="flex items-center gap-1 rounded-full px-2 py-1 flex-shrink-0" style={{ background: "rgba(52,211,153,0.15)" }}>
+            <Check size={13} color={C.mint} />
+          </div>
+        )}
+      </div>
+
+      <p style={{ fontFamily: BODY, fontSize: 13, color: done ? C.chalkDim : "rgba(255,255,255,0.92)", marginTop: 8, lineHeight: 1.4 }}>{session.desc}</p>
+
+      {!done && adjustment && (
+        <div className="flex items-start gap-2 mt-2 p-2 rounded-lg" style={{ background: "rgba(0,0,0,0.22)" }}>
+          <Gauge size={13} color={C.chalk} style={{ marginTop: 1, flexShrink: 0 }} />
+          <div>
+            <div style={{ fontFamily: BODY, fontSize: 11, fontWeight: 700, color: C.chalk }}>{adjustment.label} · aim for ~{adjustedTarget} min</div>
+            <div style={{ fontFamily: BODY, fontSize: 11, color: "rgba(255,255,255,0.85)" }}>{adjustment.note}</div>
+          </div>
+        </div>
+      )}
+
+      {done ? (
+        <div className="flex gap-4 mt-3 pt-3" style={{ borderTop: `1px solid ${C.line}` }}>
+          <Stat label="Pace" value={fmtPace(pace)} />
+          <Stat label="Distance" value={`${log.distanceKm} km`} />
+          <Stat label="RPE" value={`${log.rpe}/10`} />
+        </div>
+      ) : (
+        <button onClick={() => onLog(session)}
+          className="mt-3 flex items-center gap-2 rounded-full px-3.5 py-2 transition-transform active:scale-95"
+          style={{ background: "rgba(0,0,0,0.28)", color: C.chalk }}>
+          <Play size={13} fill={C.chalk} />
+          <span style={{ fontFamily: BODY, fontWeight: 700, fontSize: 13 }}>Log this run</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function LogModal({ session, onClose, onSave, settings }) {
+  const [distanceKm, setDistanceKm] = useState("");
+  const [minutes, setMinutes] = useState("");
+  const [seconds, setSeconds] = useState("");
+  const [avgHR, setAvgHR] = useState("");
+  const [rpe, setRpe] = useState(5);
+  const [notes, setNotes] = useState("");
+  const [completed, setCompleted] = useState(true);
+
+  const durationMin = (parseFloat(minutes) || 0) + (parseFloat(seconds) || 0) / 60;
+  const dist = parseFloat(distanceKm) || 0;
+  const pace = paceMinPerKm(dist, durationMin);
+  const speed = speedKmH(dist, durationMin);
+  const maxHR = settings.age ? 220 - parseInt(settings.age, 10) : null;
+  const zone = hrZone(parseFloat(avgHR), maxHR);
+  const canSave = dist > 0 && durationMin > 0;
+  const style = WORKOUT_STYLE[session.type];
+  const SIcon = style.icon;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.55)" }}>
+      <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto" style={{ background: C.bgPanel }}>
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center rounded-full" style={{ width: 34, height: 34, background: style.solid }}>
+              <SIcon size={16} color={C.bg} />
+            </div>
+            <div>
+              <div style={{ fontFamily: BODY, fontSize: 11, color: C.chalkDim }}>{session.label} · {fmtShort(session.date)}</div>
+              <div style={{ fontFamily: DISPLAY, fontSize: 24, color: C.chalk }}>{session.title}</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ color: C.chalkDim }}><X size={22} /></button>
+        </div>
+
+        <Field label="Distance (km)"><input type="number" inputMode="decimal" value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)} placeholder="3.0" style={inputStyle} /></Field>
+        <div className="flex gap-3">
+          <Field label="Minutes"><input type="number" inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="22" style={inputStyle} /></Field>
+          <Field label="Seconds"><input type="number" inputMode="numeric" value={seconds} onChange={(e) => setSeconds(e.target.value)} placeholder="30" style={inputStyle} /></Field>
+        </div>
+        <Field label="Avg heart rate (optional, bpm)"><input type="number" inputMode="numeric" value={avgHR} onChange={(e) => setAvgHR(e.target.value)} placeholder="from your watch" style={inputStyle} /></Field>
+        <Field label={`Effort — RPE ${rpe}/10`}>
+          <input type="range" min="1" max="10" value={rpe} onChange={(e) => setRpe(parseInt(e.target.value, 10))} style={{ width: "100%", accentColor: C.amber }} />
+          <div className="flex justify-between" style={{ fontFamily: BODY, fontSize: 10, color: C.chalkDim }}><span>Easy</span><span>All-out</span></div>
+        </Field>
+        <Field label="Notes (optional)">
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="How did it feel?" style={{ ...inputStyle, resize: "none" }} />
+        </Field>
+        <label className="flex items-center gap-2 mt-1 mb-4">
+          <input type="checkbox" checked={completed} onChange={(e) => setCompleted(e.target.checked)} style={{ accentColor: C.mint }} />
+          <span style={{ fontFamily: BODY, fontSize: 13, color: C.chalkDim }}>Completed the full session</span>
+        </label>
+
+        {(dist > 0 && durationMin > 0) && (
+          <div className="flex gap-4 mb-4 p-3 rounded-lg" style={{ background: C.bgPanelLight }}>
+            <Stat label="Pace" value={fmtPace(pace)} />
+            <Stat label="Speed" value={`${speed.toFixed(1)} km/h`} />
+            {zone && <Stat label="HR Zone" value={zone.label} color={zone.color} />}
+          </div>
+        )}
+
+        <button disabled={!canSave}
+          onClick={() => onSave({ distanceKm: dist, durationMin, avgHR: parseFloat(avgHR) || null, rpe, notes, completed, date: fmtISO(new Date()) })}
+          className="w-full rounded-lg py-3 transition-transform active:scale-95"
+          style={{ background: canSave ? C.amber : C.line, color: canSave ? C.bg : C.chalkDim, fontFamily: BODY, fontWeight: 700, fontSize: 14 }}>
+          Save run
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div className="mb-3 flex-1">
+      <label style={{ fontFamily: BODY, fontSize: 11, color: C.chalkDim, letterSpacing: 0.3 }}>{label}</label>
+      <div className="mt-1">{children}</div>
+    </div>
+  );
+}
+const inputStyle = { width: "100%", background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: "9px 10px", color: C.chalk, fontFamily: BODY, fontSize: 14, outline: "none" };
+
+function FeedbackToast({ feedback, onClose }) {
+  const color = feedback.tone === "good" ? C.mint : feedback.tone === "watch" ? C.coral : C.amber;
+  return (
+    <div className="fixed bottom-20 left-4 right-4 z-50 rounded-xl p-4" style={{ background: C.bgPanelLight, border: `1px solid ${color}` }}>
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex items-start gap-2">
+          <Trophy size={16} color={color} style={{ marginTop: 2, flexShrink: 0 }} />
+          <div>{feedback.lines.map((l, i) => <p key={i} style={{ fontFamily: BODY, fontSize: 13, color: C.chalk, marginBottom: i < feedback.lines.length - 1 ? 4 : 0 }}>{l}</p>)}</div>
+        </div>
+        <button onClick={onClose} style={{ color: C.chalkDim, flexShrink: 0 }}><X size={16} /></button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   MINI SVG LINE CHART (replaces recharts)
+----------------------------------------------------------------*/
+function PaceChart({ data }) {
+  const w = 320, h = 140, padL = 30, padR = 8, padT = 8, padB = 20;
+  const values = data.map((d) => d.pace);
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = max - min || 1;
+  const innerW = w - padL - padR, innerH = h - padT - padB;
+  const points = data.map((d, i) => {
+    const x = padL + (i / Math.max(1, data.length - 1)) * innerW;
+    // reversed axis: lower pace (faster) should plot higher
+    const y = padT + ((d.pace - min) / range) * innerH;
+    return { x, y, label: d.name, pace: d.pace };
+  });
+  const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+  const yTicks = [min, (min + max) / 2, max];
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: "block" }}>
+      {yTicks.map((t, i) => {
+        const y = padT + ((t - min) / range) * innerH;
+        return (
+          <g key={i}>
+            <line x1={padL} y1={y} x2={w - padR} y2={y} stroke={C.line} strokeDasharray="3 3" />
+            <text x={0} y={y + 3} fontSize="9" fill={C.chalkDim}>{t.toFixed(1)}</text>
+          </g>
+        );
+      })}
+      <path d={path} fill="none" stroke={C.amber} strokeWidth="2" />
+      {points.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3" fill={C.amber} />)}
+      {points.map((p, i) => (
+        (i === 0 || i === points.length - 1 || i % Math.ceil(points.length / 5) === 0) &&
+        <text key={"lbl" + i} x={p.x} y={h - 4} fontSize="9" fill={C.chalkDim} textAnchor="middle">{p.label}</text>
+      ))}
+    </svg>
+  );
+}
+
+/* ---------------------------------------------------------------
+   TABS
+----------------------------------------------------------------*/
+function TodayTab({ logs, onLog, selectedWeek, setSelectedWeek, currentWeek, daysToRace }) {
+  const week = WEEKS.find((w) => w.weekNum === selectedWeek);
+  const nextSession = ALL_SESSIONS.find((s) => !logs[s.id]);
+  const stats = useMemo(() => computeStats(logs), [logs]);
+
+  const completion = (weekNum) => {
+    const w = WEEKS.find((ww) => ww.weekNum === weekNum);
+    return w.sessions.filter((s) => logs[s.id]).length / w.sessions.length;
+  };
+  const weekProgress = completion(week.weekNum);
+  const raceProgress = 1 - daysToRace / PROGRAM_DAYS;
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-5">
+        <div>
+          <div style={{ fontFamily: BODY, fontSize: 12, color: C.chalkDim, letterSpacing: 1 }}>ROAD TO THE</div>
+          <div style={{ fontFamily: DISPLAY, fontSize: 42, color: C.chalk, lineHeight: 0.9 }}>5K</div>
+        </div>
+        <ProgressRing progress={raceProgress} color={C.amber} size={80} stroke={7}>
+          <div className="flex flex-col items-center">
+            <span style={{ fontFamily: DISPLAY, fontSize: 22, color: C.amber, lineHeight: 1 }}>{daysToRace}</span>
+            <span style={{ fontFamily: BODY, fontSize: 8, color: C.chalkDim, letterSpacing: 0.5 }}>DAYS LEFT</span>
+          </div>
+        </ProgressRing>
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-4" style={{ scrollbarWidth: "none" }}>
+        <Badge icon={Flame} label="Streak" value={`${stats.streak} wk`} color={C.coral} />
+        <Badge icon={MapPin} label="Total" value={`${stats.totalDistance.toFixed(1)} km`} color={C.sky} />
+        <Badge icon={Trophy} label="Best pace" value={stats.bestPace ? fmtPace(stats.bestPace) : "—"} color={C.amber} />
+      </div>
+
+      <TheLane weeks={WEEKS} currentWeek={currentWeek} selected={selectedWeek} onSelect={setSelectedWeek} completion={completion} />
+
+      <div className="rounded-2xl p-4 mt-4 mb-2" style={{ background: C.bgPanel, border: `1px solid ${C.line}` }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <span style={{ fontFamily: DISPLAY, fontSize: 19, color: C.chalk, letterSpacing: 0.5 }}>WEEK {week.weekNum} — {week.theme.toUpperCase()}</span>
+            <div style={{ fontFamily: BODY, fontSize: 11, color: C.chalkDim }}>{fmtShort(week.startDate)} – {fmtShort(week.endDate)}</div>
+          </div>
+          <ProgressRing progress={weekProgress} color={C.mint} size={44} stroke={5}>
+            <span style={{ fontFamily: MONO, fontSize: 11, color: C.chalk }}>{Math.round(weekProgress * 100)}%</span>
+          </ProgressRing>
+        </div>
+        <DayStrip week={week} logs={logs} />
+      </div>
+
+      <div className="mt-3">
+        {week.sessions.map((s) => (
+          <SessionCard key={s.id} session={s} log={logs[s.id]} onLog={onLog} isNext={nextSession && s.id === nextSession.id} adjustment={getAdjustment(s, logs)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PlanTab({ logs }) {
+  const [open, setOpen] = useState(WEEKS[0].weekNum);
+  return (
+    <div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 30, color: C.chalk, marginBottom: 12 }}>FULL PLAN</div>
+      {WEEKS.map((w) => {
+        const isOpen = open === w.weekNum;
+        const doneCount = w.sessions.filter((s) => logs[s.id]).length;
+        return (
+          <div key={w.weekNum} className="mb-2 rounded-xl overflow-hidden" style={{ background: C.bgPanel, border: `1px solid ${C.line}` }}>
+            <button className="w-full flex justify-between items-center p-4" onClick={() => setOpen(isOpen ? null : w.weekNum)}>
+              <div className="text-left">
+                <div style={{ fontFamily: DISPLAY, fontSize: 18, color: C.chalk }}>WEEK {w.weekNum} · {w.theme}</div>
+                <div style={{ fontFamily: BODY, fontSize: 11, color: C.chalkDim }}>{doneCount}/{w.sessions.length} logged</div>
+              </div>
+              {isOpen ? <ChevronUp size={18} color={C.chalkDim} /> : <ChevronDown size={18} color={C.chalkDim} />}
+            </button>
+            {isOpen && (
+              <div className="px-4 pb-4">
+                {w.sessions.map((s) => {
+                  const style = WORKOUT_STYLE[s.type];
+                  const IconComp = style.icon;
+                  return (
+                    <div key={s.id} className="flex items-center gap-3 py-2" style={{ borderTop: `1px solid ${C.line}` }}>
+                      <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 26, height: 26, background: logs[s.id] ? C.mint : style.solid }}>
+                        {logs[s.id] ? <Check size={13} color={C.bg} /> : <IconComp size={13} color={C.bg} />}
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: BODY, fontSize: 13, color: C.chalk }}>{s.label}: {s.title} <span style={{ color: C.chalkDim }}>· {fmtShort(s.date)}</span></div>
+                        <div style={{ fontFamily: BODY, fontSize: 12, color: C.chalkDim }}>{s.desc}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProgressTab({ logs, settings }) {
+  const stats = useMemo(() => computeStats(logs), [logs]);
+  const entries = useMemo(() => ALL_SESSIONS.filter((s) => logs[s.id]).map((s) => ({ session: s, log: logs[s.id] })).sort((a, b) => new Date(a.log.date) - new Date(b.log.date)), [logs]);
+  const chartData = entries.map((e, i) => ({ name: `R${i + 1}`, pace: parseFloat((paceMinPerKm(e.log.distanceKm, e.log.durationMin) || 0).toFixed(2)) })).filter((d) => d.pace > 0);
+  const maxHR = settings.age ? 220 - parseInt(settings.age, 10) : null;
+
+  if (entries.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <TrendingUp size={32} color={C.chalkDim} />
+        <p style={{ fontFamily: BODY, fontSize: 14, color: C.chalkDim, marginTop: 10 }}>No runs logged yet. Your trend line starts after your first log.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 30, color: C.chalk, marginBottom: 12 }}>PROGRESS</div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-4" style={{ scrollbarWidth: "none" }}>
+        <Badge icon={Flame} label="Streak" value={`${stats.streak} wk`} color={C.coral} />
+        <Badge icon={Trophy} label="Best pace" value={stats.bestPace ? fmtPace(stats.bestPace) : "—"} color={C.amber} />
+        <Badge icon={MapPin} label="Total distance" value={`${stats.totalDistance.toFixed(1)} km`} color={C.sky} />
+        <Badge icon={Clock} label="Total time" value={`${Math.round(stats.totalMinutes)} min`} color={C.mint} />
+      </div>
+
+      {chartData.length > 1 && (
+        <div className="rounded-xl p-3 mb-4" style={{ background: C.bgPanel, border: `1px solid ${C.line}` }}>
+          <div style={{ fontFamily: BODY, fontSize: 11, color: C.chalkDim, marginBottom: 6 }}>PACE TREND (MIN/KM, LOWER = FASTER)</div>
+          <PaceChart data={chartData} />
+        </div>
+      )}
+
+      {entries.slice().reverse().map(({ session, log }) => {
+        const pace = paceMinPerKm(log.distanceKm, log.durationMin);
+        const zone = hrZone(log.avgHR, maxHR);
+        const style = WORKOUT_STYLE[session.type];
+        const SIcon = style.icon;
+        return (
+          <div key={session.id} className="rounded-xl p-4 mb-3" style={{ background: C.bgPanel, border: `1px solid ${C.line}` }}>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center rounded-full" style={{ width: 20, height: 20, background: style.solid }}><SIcon size={11} color={C.bg} /></div>
+                <span style={{ fontFamily: BODY, fontSize: 12, color: C.chalkDim }}>{fmtShort(session.date)} · {session.label}</span>
+              </div>
+            </div>
+            <div className="flex gap-4 mt-2">
+              <Stat label="Pace" value={fmtPace(pace)} />
+              <Stat label="Distance" value={`${log.distanceKm} km`} />
+              <Stat label="Duration" value={`${Math.floor(log.durationMin)}:${Math.round((log.durationMin % 1) * 60).toString().padStart(2, "0")}`} />
+              {log.avgHR ? <Stat label="Avg HR" value={`${log.avgHR}${zone ? " · " + zone.label : ""}`} /> : null}
+            </div>
+            {log.notes ? <p style={{ fontFamily: BODY, fontSize: 12.5, color: C.chalkDim, marginTop: 8, fontStyle: "italic" }}>"{log.notes}"</p> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SettingsTab({ settings, onSave }) {
+  const [age, setAge] = useState(settings.age || "");
+  const maxHR = age ? 220 - parseInt(age, 10) : null;
+  return (
+    <div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 30, color: C.chalk, marginBottom: 12 }}>SETTINGS</div>
+      <div className="rounded-xl p-4" style={{ background: C.bgPanel, border: `1px solid ${C.line}` }}>
+        <Field label="Age (used to estimate heart rate zones)">
+          <input type="number" inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value)} placeholder="e.g. 32" style={inputStyle} />
+        </Field>
+        {maxHR && <p style={{ fontFamily: BODY, fontSize: 12, color: C.chalkDim, marginBottom: 10 }}>Estimated max HR: <span style={{ color: C.chalk }}>{maxHR} bpm</span></p>}
+        <button onClick={() => onSave({ ...settings, age })} className="rounded-lg px-4 py-2 mt-1" style={{ background: C.amber, color: C.bg, fontFamily: BODY, fontWeight: 700, fontSize: 13 }}>Save</button>
+      </div>
+      <div className="rounded-xl p-4 mt-4" style={{ background: C.bgPanel, border: `1px solid ${C.line}` }}>
+        <div className="flex items-center gap-2 mb-2"><Watch size={16} color={C.sky} /><span style={{ fontFamily: BODY, fontSize: 13, fontWeight: 600, color: C.chalk }}>About your run data</span></div>
+        <p style={{ fontFamily: BODY, fontSize: 12.5, color: C.chalkDim, lineHeight: 1.5 }}>This app doesn't connect live to a watch or fitness tracker — after a run, type your distance, time, and heart rate into the log form. Everything is saved in your browser on this device.</p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   APP
+----------------------------------------------------------------*/
+function App() {
+  const { logs, saveLog, settings, saveSettings, loaded } = useAppData();
+  const [tab, setTab] = useState("today");
+  const [modalSession, setModalSession] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const today = new Date();
+  const currentWeekObj = WEEKS.find((w) => today >= w.startDate && today <= addDays(w.endDate, 1)) || WEEKS[0];
+  const currentWeek = today < PROGRAM_START ? 1 : today > RACE_DATE ? 8 : currentWeekObj.weekNum;
+  const [selectedWeek, setSelectedWeek] = useState(currentWeek);
+  const daysToRace = Math.max(0, daysBetween(new Date(today), new Date(RACE_DATE)));
+
+  const priorBestPace = useMemo(() => {
+    const paces = Object.values(logs).map((l) => paceMinPerKm(l.distanceKm, l.durationMin)).filter((p) => p && isFinite(p));
+    return paces.length ? Math.min(...paces) : null;
+  }, [logs]);
+
+  const handleSave = async (entry) => {
+    await saveLog(modalSession.id, entry);
+    const fb = generateFeedback({ log: entry, session: modalSession, priorBest: priorBestPace });
+    setModalSession(null);
+    setToast(fb);
+    setTimeout(() => setToast(null), 6000);
+  };
+
+  if (!loaded) return <div style={{ background: C.bg, minHeight: "100vh" }} />;
+
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", fontFamily: BODY }}>
+      <div className="max-w-md mx-auto px-4 pt-6 pb-24">
+        {tab === "today" && <TodayTab logs={logs} onLog={setModalSession} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} currentWeek={currentWeek} daysToRace={daysToRace} />}
+        {tab === "plan" && <PlanTab logs={logs} />}
+        {tab === "progress" && <ProgressTab logs={logs} settings={settings} />}
+        {tab === "settings" && <SettingsTab settings={settings} onSave={saveSettings} />}
+      </div>
+
+      <nav className="fixed bottom-0 left-0 right-0 flex justify-around items-center py-3" style={{ background: C.bgPanel, borderTop: `1px solid ${C.line}` }}>
+        <NavBtn icon={HomeIcon} label="Today" active={tab === "today"} onClick={() => setTab("today")} />
+        <NavBtn icon={CalendarDays} label="Plan" active={tab === "plan"} onClick={() => setTab("plan")} />
+        <NavBtn icon={TrendingUp} label="Progress" active={tab === "progress"} onClick={() => setTab("progress")} />
+        <NavBtn icon={SettingsIcon} label="Settings" active={tab === "settings"} onClick={() => setTab("settings")} />
+      </nav>
+
+      {modalSession && <LogModal session={modalSession} onClose={() => setModalSession(null)} onSave={handleSave} settings={settings} />}
+      {toast && <FeedbackToast feedback={toast} onClose={() => setToast(null)} />}
+    </div>
+  );
+}
+
+function NavBtn({ icon: IconComp, label, active, onClick }) {
+  return (
+    <button onClick={onClick} className="flex flex-col items-center gap-1 px-3">
+      <IconComp size={19} color={active ? C.amber : C.chalkDim} />
+      <span style={{ fontFamily: BODY, fontSize: 10, color: active ? C.amber : C.chalkDim }}>{label}</span>
+    </button>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
